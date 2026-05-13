@@ -59,7 +59,8 @@ document.getElementById('current-cpi').textContent = '41/100';
 document.getElementById('rank').textContent = '81st out of 182 countries';
 document.getElementById('trend').textContent = 'Stable (no change from 2023)';
 
-const newsData = [
+// Fallback static news data
+const fallbackNewsData = [
     {
         title: 'Public urged to comment on Reviewed White Paper on Local Government',
         summary: 'A second public consultation round for the local government white paper is underway, with civil society urged to share input on governance reforms.',
@@ -97,23 +98,122 @@ const newsData = [
     }
 ];
 
-function renderNewsTracker() {
-    const list = document.getElementById('news-list');
-    const latestDate = document.getElementById('latest-news-date');
-    if (!list || !latestDate) return;
+const RSS_FEED_URL = 'https://www.corruptionwatch.org.za/feed/';
+let lastUpdateTime = null;
 
-    newsData.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'news-item';
-        card.innerHTML = `
-            <h3><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a></h3>
-            <p>${item.summary}</p>
-            <small>${item.date} · ${item.source}</small>
-        `;
-        list.appendChild(card);
-    });
-
-    latestDate.textContent = newsData[0].date;
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch (e) {
+        return dateString;
+    }
 }
 
-renderNewsTracker();
+function cleanHtml(html) {
+    // Simple HTML tag removal for summaries
+    return html.replace(/<[^>]*>/g, '').trim();
+}
+
+async function fetchRSSFeed() {
+    try {
+        const response = await fetch(RSS_FEED_URL, {
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/rss+xml, application/xml, text/xml'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+        const items = xmlDoc.querySelectorAll('item');
+        const newsData = [];
+
+        for (let i = 0; i < Math.min(items.length, 6); i++) {
+            const item = items[i];
+            const title = item.querySelector('title')?.textContent || 'No title';
+            const description = cleanHtml(item.querySelector('description')?.textContent || '');
+            const link = item.querySelector('link')?.textContent || item.querySelector('guid')?.textContent || '#';
+            const pubDate = item.querySelector('pubDate')?.textContent || '';
+
+            newsData.push({
+                title: title,
+                summary: description.length > 150 ? description.substring(0, 150) + '...' : description,
+                date: formatDate(pubDate),
+                source: 'Corruption Watch',
+                url: link
+            });
+        }
+
+        return newsData;
+    } catch (error) {
+        console.warn('Failed to fetch RSS feed:', error);
+        return null;
+    }
+}
+
+function renderNewsTracker(newsData, isLoading = false, error = null) {
+    const list = document.getElementById('news-list');
+    const latestDate = document.getElementById('latest-news-date');
+    const loadingIndicator = document.getElementById('loading-indicator');
+
+    if (!list || !latestDate || !loadingIndicator) return;
+
+    // Clear existing content
+    list.innerHTML = '';
+
+    if (isLoading) {
+        loadingIndicator.textContent = 'Fetching latest news...';
+        loadingIndicator.className = 'loading';
+        return;
+    }
+
+    if (error) {
+        loadingIndicator.textContent = 'Unable to load latest news. Showing cached data.';
+        loadingIndicator.className = 'error';
+    } else {
+        loadingIndicator.textContent = '';
+        loadingIndicator.className = '';
+    }
+
+    if (newsData && newsData.length > 0) {
+        newsData.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'news-item';
+            card.innerHTML = `
+                <h3><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a></h3>
+                <p>${item.summary}</p>
+                <small>${item.date} · ${item.source}</small>
+            `;
+            list.appendChild(card);
+        });
+
+        latestDate.textContent = newsData[0].date;
+        lastUpdateTime = new Date();
+    }
+}
+
+async function updateNewsTracker() {
+    renderNewsTracker(null, true);
+
+    let newsData = await fetchRSSFeed();
+
+    if (!newsData) {
+        // Fallback to static data
+        newsData = fallbackNewsData;
+    }
+
+    renderNewsTracker(newsData, false, !await fetchRSSFeed());
+}
+
+// Initial load
+updateNewsTracker();
+
+// Auto-refresh every 10 minutes
+setInterval(updateNewsTracker, 10 * 60 * 1000);

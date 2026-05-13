@@ -119,6 +119,18 @@ h2 {
     text-decoration: underline;
 }
 
+.loading {
+    color: #666;
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
+.error {
+    color: #dc3545;
+    font-weight: bold;
+    margin-top: 0.5rem;
+}
+
 .indicator h3 {
     margin-top: 0;
 }
