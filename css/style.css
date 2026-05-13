@@ -48,6 +48,35 @@ h2 {
     border-radius: 4px;
 }
 
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.report-item {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+}
+
+.report-item h3 {
+    margin-top: 0;
+    color: #dc3545;
+    font-size: 1.1rem;
+}
+
+.report-item p {
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
+.report-item small {
+    color: #666;
+    font-style: italic;
+}
+
 .indicator h3 {
     margin-top: 0;
 }
