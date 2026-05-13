@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANCTracker - Government Corruption in South Africa</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>ANCTracker</h1>
+        <p>Measuring, Tracking, and Visualizing Government Corruption in South Africa</p>
+    </header>
+    <main>
+        <section id="overview">
+            <h2>Corruption Overview</h2>
+            <p>South Africa's Corruption Perceptions Index (CPI) measures the perceived levels of public sector corruption. A higher score indicates lower levels of corruption.</p>
+            <canvas id="cpiChart"></canvas>
+        </section>
+        <section id="indicators">
+            <h2>Key Indicators</h2>
+            <div class="indicators-grid">
+                <div class="indicator">
+                    <h3>Current CPI Score</h3>
+                    <p id="current-cpi">41</p>
+                </div>
+                <div class="indicator">
+                    <h3>Rank</h3>
+                    <p id="rank">72nd</p>
+                </div>
+                <div class="indicator">
+                    <h3>Trend</h3>
+                    <p id="trend">Stable</p>
+                </div>
+            </div>
+        </section>
+        <section id="reports">
+            <h2>Recent Corruption Reports & News</h2>
+            <div class="reports-grid">
+                <div class="report-item">
+                    <h3>Public urged to comment on Reviewed White Paper on Local Government</h3>
+                    <p>The Department of Cooperative Governance and Traditional Affairs encourages public participation in reviewing the White Paper on Local Government. Second round of comments now open.</p>
+                    <small>May 2025 - Corruption Watch</small>
+                </div>
+                <div class="report-item">
+                    <h3>Human rights provision fails when corruption is present</h3>
+                    <p>Analysis of how corruption undermines human rights delivery in South Africa, coinciding with Human Rights Day observations.</p>
+                    <small>March 2025 - Corruption Watch</small>
+                </div>
+                <div class="report-item">
+                    <h3>State capture update: progress on govt response to Zondo recommendations</h3>
+                    <p>Monitoring government implementation of recommendations from the Judicial Commission of Inquiry into Allegations of State Capture.</p>
+                    <small>Ongoing - Corruption Watch</small>
+                </div>
+                <div class="report-item">
+                    <h3>CW leads joint civil society submission on Protected Disclosures Bill</h3>
+                    <p>Corruption Watch coordinates civil society input on legislation to protect whistleblowers and strengthen anti-corruption measures.</p>
+                    <small>Recent - Corruption Watch</small>
+                </div>
+                <div class="report-item">
+                    <h3>In the Still of Night – climate governance podcast, episode 4</h3>
+                    <p>Exploring corruption in disaster relief and climate governance, focusing on abuse of power in emergency response.</p>
+                    <small>Recent - Corruption Watch</small>
+                </div>
+            </div>
+        </section>
+        <section id="news-tracker">
+            <h2>Corruption News Tracker</h2>
+            <div class="news-tracker-summary">
+                <p>Tracking the latest government corruption headlines and developments in South Africa.</p>
+                <p><strong>Last updated:</strong> <span id="latest-news-date">Loading...</span></p>
+                <div id="loading-indicator" class="loading">Fetching latest news...</div>
+            </div>
+            <div class="news-items" id="news-list"></div>
+        </section>
+    </main>
+    <footer>
+        <p>Data sourced from Transparency International Corruption Perceptions Index and Corruption Watch reports. Updated with latest available information.</p>
+    </footer>
+    <script src="js/script.js"></script>
+</body>
+</html>
