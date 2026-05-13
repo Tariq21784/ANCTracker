@@ -99,6 +99,7 @@ const fallbackNewsData = [
 ];
 
 const RSS_FEED_URL = 'https://www.corruptionwatch.org.za/feed/';
+const RSS_FEED_PROXY = 'https://api.allorigins.win/raw?url=';
 let lastUpdateTime = null;
 
 function formatDate(dateString) {
@@ -115,6 +116,31 @@ function cleanHtml(html) {
     return html.replace(/<[^>]*>/g, '').trim();
 }
 
+function parseRSSXml(xmlText) {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const items = xmlDoc.querySelectorAll('item');
+    const newsData = [];
+
+    for (let i = 0; i < Math.min(items.length, 6); i++) {
+        const item = items[i];
+        const title = item.querySelector('title')?.textContent || 'No title';
+        const description = cleanHtml(item.querySelector('description')?.textContent || '');
+        const link = item.querySelector('link')?.textContent || item.querySelector('guid')?.textContent || '#';
+        const pubDate = item.querySelector('pubDate')?.textContent || '';
+
+        newsData.push({
+            title: title,
+            summary: description.length > 150 ? description.substring(0, 150) + '...' : description,
+            date: formatDate(pubDate),
+            source: 'Corruption Watch',
+            url: link
+        });
+    }
+
+    return newsData;
+}
+
 async function fetchRSSFeed() {
     try {
         const response = await fetch(RSS_FEED_URL, {
@@ -124,36 +150,39 @@ async function fetchRSSFeed() {
             }
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+        if (response.ok) {
+            const xmlText = await response.text();
+            return parseRSSXml(xmlText);
         }
 
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-
-        const items = xmlDoc.querySelectorAll('item');
-        const newsData = [];
-
-        for (let i = 0; i < Math.min(items.length, 6); i++) {
-            const item = items[i];
-            const title = item.querySelector('title')?.textContent || 'No title';
-            const description = cleanHtml(item.querySelector('description')?.textContent || '');
-            const link = item.querySelector('link')?.textContent || item.querySelector('guid')?.textContent || '#';
-            const pubDate = item.querySelector('pubDate')?.textContent || '';
-
-            newsData.push({
-                title: title,
-                summary: description.length > 150 ? description.substring(0, 150) + '...' : description,
-                date: formatDate(pubDate),
-                source: 'Corruption Watch',
-                url: link
-            });
-        }
-
-        return newsData;
+        throw new Error(`Direct fetch failed: ${response.status}`);
     } catch (error) {
-        console.warn('Failed to fetch RSS feed:', error);
+        console.warn('Direct RSS fetch failed, attempting proxy:', error);
+    }
+
+    try {
+        const proxyUrl = RSS_FEED_PROXY + encodeURIComponent(RSS_FEED_URL);
+        const proxyResponse = await fetch(proxyUrl, { mode: 'cors' });
+
+        if (!proxyResponse.ok) {
+            throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+        }
+
+        const contentType = proxyResponse.headers.get('content-type') || '';
+        let xmlText = await proxyResponse.text();
+
+        if (contentType.includes('application/json')) {
+            const proxyJson = JSON.parse(xmlText);
+            xmlText = proxyJson?.contents || '';
+        }
+
+        if (!xmlText) {
+            throw new Error('Proxy returned empty content');
+        }
+
+        return parseRSSXml(xmlText);
+    } catch (proxyError) {
+        console.warn('Proxy RSS fetch failed:', proxyError);
         return null;
     }
 }
@@ -203,13 +232,13 @@ async function updateNewsTracker() {
     renderNewsTracker(null, true);
 
     let newsData = await fetchRSSFeed();
+    const usedFallback = !newsData || newsData.length === 0;
 
-    if (!newsData) {
-        // Fallback to static data
+    if (usedFallback) {
         newsData = fallbackNewsData;
     }
 
-    renderNewsTracker(newsData, false, !await fetchRSSFeed());
+    renderNewsTracker(newsData, false, usedFallback);
 }
 
 // Initial load
