@@ -98,7 +98,10 @@ const fallbackNewsData = [
     }
 ];
 
-const RSS_FEED_URL = 'https://www.corruptionwatch.org.za/feed/';
+const RSS_FEEDS = [
+    { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', source: 'BBC News' },
+    { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' }
+];
 const RSS_FEED_PROXY = 'https://api.allorigins.win/raw?url=';
 let lastUpdateTime = null;
 
@@ -116,7 +119,7 @@ function cleanHtml(html) {
     return html.replace(/<[^>]*>/g, '').trim();
 }
 
-function parseRSSXml(xmlText) {
+function parseRSSXml(xmlText, source) {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
     const items = xmlDoc.querySelectorAll('item');
@@ -133,7 +136,7 @@ function parseRSSXml(xmlText) {
             title: title,
             summary: description.length > 150 ? description.substring(0, 150) + '...' : description,
             date: formatDate(pubDate),
-            source: 'Corruption Watch',
+            source: source,
             url: link
         });
     }
@@ -141,50 +144,52 @@ function parseRSSXml(xmlText) {
     return newsData;
 }
 
+async function tryFetchFeed(url, source) {
+    const response = await fetch(url, {
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/rss+xml, application/xml, text/xml'
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    let text = await response.text();
+
+    if (contentType.includes('application/json')) {
+        const json = JSON.parse(text);
+        text = json?.contents || '';
+    }
+
+    if (!text) {
+        throw new Error('Empty response body');
+    }
+
+    return parseRSSXml(text, source);
+}
+
 async function fetchRSSFeed() {
-    try {
-        const response = await fetch(RSS_FEED_URL, {
-            mode: 'cors',
-            headers: {
-                'Accept': 'application/rss+xml, application/xml, text/xml'
-            }
-        });
-
-        if (response.ok) {
-            const xmlText = await response.text();
-            return parseRSSXml(xmlText);
+    for (const feed of RSS_FEEDS) {
+        try {
+            return await tryFetchFeed(feed.url, feed.source);
+        } catch (error) {
+            console.warn('Direct RSS fetch failed for', feed.url, error);
         }
-
-        throw new Error(`Direct fetch failed: ${response.status}`);
-    } catch (error) {
-        console.warn('Direct RSS fetch failed, attempting proxy:', error);
     }
 
-    try {
-        const proxyUrl = RSS_FEED_PROXY + encodeURIComponent(RSS_FEED_URL);
-        const proxyResponse = await fetch(proxyUrl, { mode: 'cors' });
-
-        if (!proxyResponse.ok) {
-            throw new Error(`Proxy fetch failed: ${proxyResponse.status}`);
+    for (const feed of RSS_FEEDS) {
+        try {
+            const proxyUrl = RSS_FEED_PROXY + encodeURIComponent(feed.url);
+            return await tryFetchFeed(proxyUrl, feed.source);
+        } catch (proxyError) {
+            console.warn('Proxy RSS fetch failed for', feed.url, proxyError);
         }
-
-        const contentType = proxyResponse.headers.get('content-type') || '';
-        let xmlText = await proxyResponse.text();
-
-        if (contentType.includes('application/json')) {
-            const proxyJson = JSON.parse(xmlText);
-            xmlText = proxyJson?.contents || '';
-        }
-
-        if (!xmlText) {
-            throw new Error('Proxy returned empty content');
-        }
-
-        return parseRSSXml(xmlText);
-    } catch (proxyError) {
-        console.warn('Proxy RSS fetch failed:', proxyError);
-        return null;
     }
+
+    return null;
 }
 
 function renderNewsTracker(newsData, isLoading = false, error = null) {
@@ -231,14 +236,11 @@ function renderNewsTracker(newsData, isLoading = false, error = null) {
 async function updateNewsTracker() {
     renderNewsTracker(null, true);
 
-    let newsData = await fetchRSSFeed();
-    const usedFallback = !newsData || newsData.length === 0;
+    const newsData = await fetchRSSFeed();
+    const usedFallback = !newsData || !newsData.length;
+    const dataToRender = usedFallback ? fallbackNewsData : newsData;
 
-    if (usedFallback) {
-        newsData = fallbackNewsData;
-    }
-
-    renderNewsTracker(newsData, false, usedFallback);
+    renderNewsTracker(dataToRender, false, usedFallback);
 }
 
 // Initial load
