@@ -58,3 +58,62 @@ const cpiChart = new Chart(ctx, {
 document.getElementById('current-cpi').textContent = '41/100';
 document.getElementById('rank').textContent = '81st out of 182 countries';
 document.getElementById('trend').textContent = 'Stable (no change from 2023)';
+
+const newsData = [
+    {
+        title: 'Public urged to comment on Reviewed White Paper on Local Government',
+        summary: 'A second public consultation round for the local government white paper is underway, with civil society urged to share input on governance reforms.',
+        date: 'May 2025',
+        source: 'Corruption Watch',
+        url: 'https://www.corruptionwatch.org.za/public-urged-to-comment-on-reviewed-white-paper-on-local-government/'
+    },
+    {
+        title: 'Human rights provision fails when corruption is present',
+        summary: 'Corruption Watch analysis highlights that corruption undermines delivery of human rights and weakens accountability systems in South Africa.',
+        date: 'March 2025',
+        source: 'Corruption Watch',
+        url: 'https://www.corruptionwatch.org.za/human-rights-provision-fails-when-corruption-is-present/'
+    },
+    {
+        title: 'State capture update: progress on govt response to Zondo recommendations',
+        summary: 'Ongoing monitoring of government progress against the Zondo Commission recommendations remains critical for transparency and accountability.',
+        date: '2025',
+        source: 'Corruption Watch',
+        url: 'https://www.corruptionwatch.org.za/state-capture-update-progress-on-govt-response-to-zondo-recommendations/'
+    },
+    {
+        title: 'CW leads joint civil society submission on Protected Disclosures Bill',
+        summary: 'Corruption Watch collaborates with civil society to strengthen whistleblower protections and ensure the bill supports corruption reporting.',
+        date: '2024',
+        source: 'Corruption Watch',
+        url: 'https://www.corruptionwatch.org.za/cw-leads-joint-civil-society-submission-on-protected-disclosures-bill/'
+    },
+    {
+        title: 'In the Still of Night – climate governance podcast, episode 4',
+        summary: 'A new episode examines corruption risks in disaster relief and climate governance, highlighting accountability gaps in emergency response.',
+        date: '2026',
+        source: 'Corruption Watch',
+        url: 'https://www.corruptionwatch.org.za/in-the-still-of-night-a-climate-governance-podcast-episode-4/'
+    }
+];
+
+function renderNewsTracker() {
+    const list = document.getElementById('news-list');
+    const latestDate = document.getElementById('latest-news-date');
+    if (!list || !latestDate) return;
+
+    newsData.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'news-item';
+        card.innerHTML = `
+            <h3><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.title}</a></h3>
+            <p>${item.summary}</p>
+            <small>${item.date} · ${item.source}</small>
+        `;
+        list.appendChild(card);
+    });
+
+    latestDate.textContent = newsData[0].date;
+}
+
+renderNewsTracker();
